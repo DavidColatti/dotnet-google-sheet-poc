@@ -1,0 +1,25 @@
+﻿@model List<IList<object>>
+
+@{
+    var headers = Model.First();
+    var rows = Model.Skip(1);
+}
+
+<table>
+    <tr>
+        @foreach (var header in headers)
+        {
+            <th>@header</th>
+        }
+    </tr>
+
+    @foreach(var row in rows)
+    {
+        <tr>
+            @foreach(var cell in row)
+            {
+                <td>@cell</td>
+            }
+        </tr>
+    }
+</table>
