@@ -17,25 +17,22 @@ namespace Google.Sheet.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private static readonly string[] Scopes = { SheetsService.Scope.Spreadsheets };
-        private const string SpreadsheetId = "1FsgNIbugVQBZvwgWNx9Xn58RHopkkCtf0xsinGe23pQ";
-        private const string GoogleCredentialsFileName = "google-credentials.json";
-        private const string ReadRange = "Sheet1!A:B";
-        private const string WriteRange = "A5:B5";
-
         private readonly ILogger<HomeController> _logger;
+        private readonly IGoogleSheetController _googleSheet;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, IGoogleSheetController googleSheet)
         {
             _logger = logger;
+            _googleSheet = googleSheet;
         }
 
         public async Task<IActionResult> Index()
         {
-            var serviceValues = GetSheetsService().Spreadsheets.Values;
-            await WriteAsync(serviceValues);
+            var writeRange = "A344:P344";
+            var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { "Done", "DColatti", "8/4/2021", "Jimmy Colatti / W2/ FL", "Sales Manager" } } };
+            await _googleSheet.WriteAsync(writeRange, valueRange);
 
-            var results = await ReadAsync(serviceValues);
+            var results = await _googleSheet.ReadAsync();
             return View(results);
         }
 
@@ -48,41 +45,6 @@ namespace Google.Sheet.Web.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-
-        private static SheetsService GetSheetsService()
-        {
-            using (var stream = new FileStream(GoogleCredentialsFileName, FileMode.Open, FileAccess.Read))
-            {
-                var serviceInitializer = new BaseClientService.Initializer
-                {
-                    HttpClientInitializer = GoogleCredential.FromStream(stream).CreateScoped(Scopes)
-                };
-                return new SheetsService(serviceInitializer);
-            }
-        }
-
-        private static async Task<List<IList<object>>> ReadAsync(SpreadsheetsResource.ValuesResource valuesResource)
-        {
-            var response = await valuesResource.Get(SpreadsheetId, ReadRange).ExecuteAsync();
-            var values = response.Values.ToList();
-
-            if (values == null || !values.Any())
-            {
-                Console.WriteLine("No data found.");
-                return new();
-            }
-
-            return values;
-        }
-
-        private static async Task WriteAsync(SpreadsheetsResource.ValuesResource valuesResource)
-        {
-            var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { "stan", 18 } } }; // TODO: Hardcoded for POC/Testing Purposes
-
-            var update = valuesResource.Update(valueRange, SpreadsheetId, WriteRange);
-            update.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
-            await update.ExecuteAsync();
         }
     }
 }
